@@ -1,0 +1,37 @@
+name: GEE River Width Export
+
+on:
+  schedule:
+    - cron: '0 0 */6 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install earthengine-api
+        run: pip install earthengine-api
+
+      - name: Run GEE export
+        env:
+          GEE_SERVICE_ACCOUNT: ${{ secrets.GEE_SERVICE_ACCOUNT }}
+          GEE_PRIVATE_KEY: ${{ secrets.GEE_PRIVATE_KEY }}
+        run: python scripts/gee_export_river_width.py
+
+      - name: Commit updated CSV
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add wang_river_width.csv
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Auto-update wang_river_width.csv from GEE export"
+          git push
